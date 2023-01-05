@@ -1,42 +1,11 @@
 #![no_std]
-#![no_main]
-#![reexport_test_harness_main = "test_main"]
+#![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
-mod serial;
-mod vga_buffer;
+#![reexport_test_harness_main = "test_main"]
 use core::panic::PanicInfo;
-use rust_os::println;
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    rust_os::test_panic_handler(info)
-}
-
-#[cfg(not(test))]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    loop {}
-}
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[failed]");
-    serial_println!("Error: {}", info);
-    exit_qemu(QemuExitCode::Failed);
-    loop {}
-}
-
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    #[cfg(test)]
-    test_main();
-
-    loop {}
-}
+pub mod serial;
+pub mod vga_buffer;
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -53,19 +22,30 @@ where
     }
 }
 
-#[cfg(test)]
-fn test_runner(tests: &[&dyn Testable]) {
+pub fn test_runner(tests: &[&dyn Testable]) {
     serial_println!("Running {} tests", tests.len());
-    println!("Running {} test(s)", tests.len());
     for test in tests {
         test.run();
     }
     exit_qemu(QemuExitCode::Success);
 }
 
-#[test_case]
-fn trivial_assertion() {
-    assert_eq!(0, 0);
+pub fn test_panic_handler(info: &PanicInfo) -> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
+    loop {}
+}
+
+/// Entry point for `cargo test`
+#[cfg(test)]
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    println!("Hellow World{}", "!");
+
+    #[cfg(test)]
+    test_main();
+    loop {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
