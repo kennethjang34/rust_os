@@ -16,24 +16,24 @@ fn panic(info: &PanicInfo) -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    rust_os::hlt_loop();
 }
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     println!("Hello World{}", "!");
     rust_os::init();
-    fn stack_overflow() {
-        stack_overflow();
-    }
-    stack_overflow();
-    unsafe {
-        *(0xdeadbeef as *mut u64) = 42;
-    };
-    x86_64::instructions::interrupts::int3();
+    //fn stack_overflow() {
+    //stack_overflow();
+    //}
+    //stack_overflow();
+    //unsafe {
+    //*(0xdeadbeef as *mut u64) = 42;
+    //};
+    //x86_64::instructions::interrupts::int3();
     #[cfg(test)]
     test_main();
 
     println!("It did not crash!");
-    loop {}
+    rust_os::hlt_loop();
 }
