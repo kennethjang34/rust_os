@@ -5,7 +5,8 @@
 #![test_runner(rust_os::test_runner)]
 use bootloader::{entry_point, BootInfo};
 use core::panic::PanicInfo;
-use rust_os::println;
+use rust_os::{memory::BootInfoFrameAllocator, println};
+use x86_64::structures::paging::Size4KiB;
 
 #[cfg(test)]
 #[panic_handler]
@@ -25,25 +26,14 @@ entry_point!(kernel_main);
 //boot_info can be skipped since the x86_64 convention passes it in a cpu register instead of in stack
 fn kernel_main(boot_info: &'static BootInfo) -> ! {
     use rust_os::memory;
-    use x86_64::structures::paging::Translate;
-    use x86_64::VirtAddr;
+    use x86_64::{
+        structures::paging::{Page, Translate},
+        VirtAddr,
+    };
 
     println!("Hello World{}", "!");
     rust_os::init();
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-    let mapper = unsafe { memory::init(phys_mem_offset) };
-    let addresses = [
-        0xb8000,                          // VGA buffer
-        0x201008,                         // a code page
-        0x0100_0020_1a10,                 // a stack page
-        boot_info.physical_memory_offset, //virtual address pointing to the start of the physical memory (i.e. physical memory address 0)
-    ];
-
-    for &address in &addresses {
-        let virt = VirtAddr::new(address);
-        let phys = mapper.translate_addr(virt);
-        println!("{:?} -> {:?}", virt, phys);
-    }
 
     #[cfg(test)]
     test_main();
